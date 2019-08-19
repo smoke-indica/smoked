@@ -231,7 +231,7 @@ namespace detail
 
    void witness_plugin_impl::pre_transaction( const signed_transaction& trx )
    {
-      const auto& _db = _self.database();
+      auto& _db = _self.database();
       flat_set< account_name_type > required; vector<authority> other;
       trx.get_required_authorities( required, required, required, other );
 
@@ -240,6 +240,12 @@ namespace detail
       for( const auto& auth : required )
       {
          const auto& acnt = _db.get_account( auth );
+
+         { // flat fee with fixed 0.010 SMOKE
+            auto fee = asset( int64_t(10) * trx.operations.size(), SMOKE_SYMBOL );
+//            FC_ASSERT( acnt.balance >= fee, "Account does not have sufficient funds for transaction fee.", ("balance", acnt.balance)("fee", fee) );
+            _db.pay_fee(acnt, fee);
+         }
 
          update_account_bandwidth( acnt, trx_size, bandwidth_type::forum );
 
@@ -257,6 +263,7 @@ namespace detail
    void witness_plugin_impl::pre_operation( const operation_notification& note )
    {
       const auto& _db = _self.database();
+
       if( _db.is_producing() )
       {
          note.op.visit( operation_visitor( _db ) );
