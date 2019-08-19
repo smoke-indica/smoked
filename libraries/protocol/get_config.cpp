@@ -113,6 +113,7 @@ fc::variant_object get_config()
    result["SMOKE_SYMBOL"] = SMOKE_SYMBOL;
    result["VESTS_SYMBOL"] = VESTS_SYMBOL;
    result["VIRTUAL_SCHEDULE_LAP_LENGTH"] = VIRTUAL_SCHEDULE_LAP_LENGTH;
+   result["SMOKE_FLAT_FEE"] = SMOKE_FLAT_FEE;
 
    return result;
 }

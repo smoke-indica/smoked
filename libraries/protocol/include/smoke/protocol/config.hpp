@@ -160,3 +160,6 @@
 ///@}
 
 #define SMOKE_SMOKE_ACCOUNT                   "smoke"
+
+// for HF1
+#define SMOKE_FLAT_FEE                        10 // 0.010 SMOKE

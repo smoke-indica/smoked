@@ -242,7 +242,7 @@ namespace detail
          const auto& acnt = _db.get_account( auth );
 
          { // flat fee with fixed 0.010 SMOKE
-            auto fee = asset( int64_t(10) * trx.operations.size(), SMOKE_SYMBOL );
+            auto fee = asset( int64_t(SMOKE_FLAT_FEE) * trx.operations.size(), SMOKE_SYMBOL );
 //            FC_ASSERT( acnt.balance >= fee, "Account does not have sufficient funds for transaction fee.", ("balance", acnt.balance)("fee", fee) );
             _db.pay_fee(acnt, fee);
          }
