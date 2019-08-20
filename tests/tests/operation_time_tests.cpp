@@ -1341,7 +1341,7 @@ BOOST_AUTO_TEST_CASE( vesting_withdraw_route )
          const auto& sam = db.get_account( "sam" );
 
          BOOST_REQUIRE( alice.vesting_shares == old_alice_vesting - vesting_withdraw_rate );
-         BOOST_REQUIRE( alice.balance == old_alice_balance );
+         BOOST_REQUIRE( alice.balance + asset(SMOKE_FLAT_FEE, SMOKE_SYMBOL) == old_alice_balance );
          BOOST_REQUIRE( bob.vesting_shares == old_bob_vesting + asset( ( vesting_withdraw_rate.amount * SMOKE_1_PERCENT * 50 ) / SMOKE_100_PERCENT, VESTS_SYMBOL ) );
          BOOST_REQUIRE( bob.balance == old_bob_balance );
          BOOST_REQUIRE( sam.vesting_shares == old_sam_vesting );
@@ -1787,7 +1787,7 @@ BOOST_AUTO_TEST_CASE( clear_null_account )
       BOOST_REQUIRE( db.get_account( SMOKE_NULL_ACCOUNT ).reward_steem_balance == ASSET( "1.000 TESTS" ) );
       BOOST_REQUIRE( db.get_account( SMOKE_NULL_ACCOUNT ).reward_vesting_balance == ASSET( "1.000000 VESTS" ) );
       BOOST_REQUIRE( db.get_account( SMOKE_NULL_ACCOUNT ).reward_vesting_steem == ASSET( "1.000 TESTS" ) );
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "6.000 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 2*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "6.000 TESTS" ) );
 
       BOOST_TEST_MESSAGE( "--- Generating block to clear balances" );
       generate_block();
@@ -1798,7 +1798,7 @@ BOOST_AUTO_TEST_CASE( clear_null_account )
       BOOST_REQUIRE( db.get_account( SMOKE_NULL_ACCOUNT ).reward_steem_balance == ASSET( "0.000 TESTS" ) );
       BOOST_REQUIRE( db.get_account( SMOKE_NULL_ACCOUNT ).reward_vesting_balance == ASSET( "0.000000 VESTS" ) );
       BOOST_REQUIRE( db.get_account( SMOKE_NULL_ACCOUNT ).reward_vesting_steem == ASSET( "0.000 TESTS" ) );
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "6.000 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 2*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "6.000 TESTS" ) );
    }
    FC_LOG_AND_RETHROW()
 }
