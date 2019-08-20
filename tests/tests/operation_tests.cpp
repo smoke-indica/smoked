@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE( account_create_apply )
       BOOST_REQUIRE( acct.vesting_shares.amount.value == ( op.fee * ( vest_shares / vests ) ).amount.value );
       BOOST_REQUIRE( acct.vesting_withdraw_rate.amount.value == ASSET( "0.000000 VESTS" ).amount.value );
       BOOST_REQUIRE( acct.proxied_vsf_votes_total().value == 0 );
-      BOOST_REQUIRE( ( init_starting_balance - ASSET( "0.100 TESTS" ) ).amount.value == init.balance.amount.value );
+      BOOST_REQUIRE( ( init_starting_balance - ASSET( "0.100 TESTS" ) ).amount.value - SMOKE_FLAT_FEE == init.balance.amount.value );
       validate_database();
 
       BOOST_TEST_MESSAGE( "--- Test failure of duplicate account creation" );
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE( account_create_apply )
       BOOST_REQUIRE( acct.vesting_shares.amount.value == ( op.fee * ( vest_shares / vests ) ).amount.value );
       BOOST_REQUIRE( acct.vesting_withdraw_rate.amount.value == ASSET( "0.000000 VESTS" ).amount.value );
       BOOST_REQUIRE( acct.proxied_vsf_votes_total().value == 0 );
-      BOOST_REQUIRE( ( init_starting_balance - ASSET( "0.100 TESTS" ) ).amount.value == init.balance.amount.value );
+      BOOST_REQUIRE( ( init_starting_balance - ASSET( "0.100 TESTS" ) ).amount.value - SMOKE_FLAT_FEE == init.balance.amount.value );
       validate_database();
 
       BOOST_TEST_MESSAGE( "--- Test failure when creator cannot cover fee" );
@@ -1186,8 +1186,8 @@ BOOST_AUTO_TEST_CASE( transfer_apply )
       ACTORS( (alice)(bob) )
       fund( "alice", 10000 );
 
-      BOOST_REQUIRE( alice.balance.amount.value == ASSET( "10.000 TESTS" ).amount.value );
-      BOOST_REQUIRE( bob.balance.amount.value == ASSET(" 0.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( alice.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET( "10.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( bob.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET(" 0.000 TESTS" ).amount.value );
 
       signed_transaction tx;
       transfer_operation op;
@@ -1202,8 +1202,8 @@ BOOST_AUTO_TEST_CASE( transfer_apply )
       tx.sign( alice_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( alice.balance.amount.value == ASSET( "5.000 TESTS" ).amount.value );
-      BOOST_REQUIRE( bob.balance.amount.value == ASSET( "5.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( alice.balance.amount.value - NEW_ACCOUNT_BALANCE + SMOKE_FLAT_FEE == ASSET( "5.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( bob.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET( "5.000 TESTS" ).amount.value );
       validate_database();
 
       BOOST_TEST_MESSAGE( "--- Generating a block" );
@@ -1212,8 +1212,8 @@ BOOST_AUTO_TEST_CASE( transfer_apply )
       const auto& new_alice = db.get_account( "alice" );
       const auto& new_bob = db.get_account( "bob" );
 
-      BOOST_REQUIRE( new_alice.balance.amount.value == ASSET( "5.000 TESTS" ).amount.value );
-      BOOST_REQUIRE( new_bob.balance.amount.value == ASSET( "5.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( new_alice.balance.amount.value - NEW_ACCOUNT_BALANCE + SMOKE_FLAT_FEE == ASSET( "5.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( new_bob.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET( "5.000 TESTS" ).amount.value );
       validate_database();
 
       BOOST_TEST_MESSAGE( "--- Test emptying an account" );
@@ -1224,8 +1224,8 @@ BOOST_AUTO_TEST_CASE( transfer_apply )
       tx.sign( alice_private_key, db.get_chain_id() );
       db.push_transaction( tx, database::skip_transaction_dupe_check );
 
-      BOOST_REQUIRE( new_alice.balance.amount.value == ASSET( "0.000 TESTS" ).amount.value );
-      BOOST_REQUIRE( new_bob.balance.amount.value == ASSET( "10.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( new_alice.balance.amount.value - NEW_ACCOUNT_BALANCE + 2*SMOKE_FLAT_FEE == ASSET( "0.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( new_bob.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET( "10.000 TESTS" ).amount.value );
       validate_database();
 
       BOOST_TEST_MESSAGE( "--- Test transferring non-existent funds" );
@@ -1236,8 +1236,8 @@ BOOST_AUTO_TEST_CASE( transfer_apply )
       tx.sign( alice_private_key, db.get_chain_id() );
       SMOKE_REQUIRE_THROW( db.push_transaction( tx, database::skip_transaction_dupe_check ), fc::exception );
 
-      BOOST_REQUIRE( new_alice.balance.amount.value == ASSET( "0.000 TESTS" ).amount.value );
-      BOOST_REQUIRE( new_bob.balance.amount.value == ASSET( "10.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( new_alice.balance.amount.value - NEW_ACCOUNT_BALANCE + 2 * SMOKE_FLAT_FEE == ASSET( "0.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( new_bob.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET( "10.000 TESTS" ).amount.value );
       validate_database();
 
    }
@@ -1313,7 +1313,7 @@ BOOST_AUTO_TEST_CASE( transfer_to_vesting_apply )
 
       const auto& gpo = db.get_dynamic_global_properties();
 
-      BOOST_REQUIRE( alice.balance == ASSET( "10.000 TESTS" ) );
+      BOOST_REQUIRE( alice.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET( "10.000 TESTS" ).amount.value );
 
       auto shares = asset( gpo.total_vesting_shares.amount, VESTS_SYMBOL );
       auto vests = asset( gpo.total_vesting_fund_steem.amount, SMOKE_SYMBOL );
@@ -1336,7 +1336,7 @@ BOOST_AUTO_TEST_CASE( transfer_to_vesting_apply )
       vests += op.amount;
       alice_shares += new_vest;
 
-      BOOST_REQUIRE( alice.balance.amount.value == ASSET( "2.500 TESTS" ).amount.value );
+      BOOST_REQUIRE( alice.balance.amount.value - NEW_ACCOUNT_BALANCE + SMOKE_FLAT_FEE == ASSET( "2.500 TESTS" ).amount.value );
       BOOST_REQUIRE( alice.vesting_shares.amount.value == alice_shares.amount.value );
       BOOST_REQUIRE( gpo.total_vesting_fund_steem.amount.value == vests.amount.value );
       BOOST_REQUIRE( gpo.total_vesting_shares.amount.value == shares.amount.value );
@@ -1356,9 +1356,9 @@ BOOST_AUTO_TEST_CASE( transfer_to_vesting_apply )
       vests += op.amount;
       bob_shares += new_vest;
 
-      BOOST_REQUIRE( alice.balance.amount.value == ASSET( "0.500 TESTS" ).amount.value );
+      BOOST_REQUIRE( alice.balance.amount.value - NEW_ACCOUNT_BALANCE + 2*SMOKE_FLAT_FEE == ASSET( "0.500 TESTS" ).amount.value );
       BOOST_REQUIRE( alice.vesting_shares.amount.value == alice_shares.amount.value );
-      BOOST_REQUIRE( bob.balance.amount.value == ASSET( "0.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( bob.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET( "0.000 TESTS" ).amount.value );
       BOOST_REQUIRE( bob.vesting_shares.amount.value == bob_shares.amount.value );
       BOOST_REQUIRE( gpo.total_vesting_fund_steem.amount.value == vests.amount.value );
       BOOST_REQUIRE( gpo.total_vesting_shares.amount.value == shares.amount.value );
@@ -1366,9 +1366,9 @@ BOOST_AUTO_TEST_CASE( transfer_to_vesting_apply )
 
       SMOKE_REQUIRE_THROW( db.push_transaction( tx, database::skip_transaction_dupe_check ), fc::exception );
 
-      BOOST_REQUIRE( alice.balance.amount.value == ASSET( "0.500 TESTS" ).amount.value );
+      BOOST_REQUIRE( alice.balance.amount.value - NEW_ACCOUNT_BALANCE + 2*SMOKE_FLAT_FEE == ASSET( "0.500 TESTS" ).amount.value );
       BOOST_REQUIRE( alice.vesting_shares.amount.value == alice_shares.amount.value );
-      BOOST_REQUIRE( bob.balance.amount.value == ASSET( "0.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( bob.balance.amount.value - NEW_ACCOUNT_BALANCE == ASSET( "0.000 TESTS" ).amount.value );
       BOOST_REQUIRE( bob.vesting_shares.amount.value == bob_shares.amount.value );
       BOOST_REQUIRE( gpo.total_vesting_fund_steem.amount.value == vests.amount.value );
       BOOST_REQUIRE( gpo.total_vesting_shares.amount.value == shares.amount.value );
@@ -1672,7 +1672,7 @@ BOOST_AUTO_TEST_CASE( witness_update_apply )
       BOOST_REQUIRE( alice_witness.virtual_last_update == 0 );
       BOOST_REQUIRE( alice_witness.virtual_position == 0 );
       BOOST_REQUIRE( alice_witness.virtual_scheduled_time == fc::uint128_t::max_value() );
-      BOOST_REQUIRE( alice.balance.amount.value == ASSET( "10.000 TESTS" ).amount.value ); // No fee
+      BOOST_REQUIRE( alice.balance.amount.value - NEW_ACCOUNT_BALANCE + SMOKE_FLAT_FEE == ASSET( "10.000 TESTS" ).amount.value );
       validate_database();
 
       BOOST_TEST_MESSAGE( "--- Test updating a witness" );
@@ -1699,7 +1699,7 @@ BOOST_AUTO_TEST_CASE( witness_update_apply )
       BOOST_REQUIRE( alice_witness.virtual_last_update == 0 );
       BOOST_REQUIRE( alice_witness.virtual_position == 0 );
       BOOST_REQUIRE( alice_witness.virtual_scheduled_time == fc::uint128_t::max_value() );
-      BOOST_REQUIRE( alice.balance.amount.value == ASSET( "10.000 TESTS" ).amount.value );
+      BOOST_REQUIRE( alice.balance.amount.value - NEW_ACCOUNT_BALANCE + 2*SMOKE_FLAT_FEE == ASSET( "10.000 TESTS" ).amount.value );
       validate_database();
 
       BOOST_TEST_MESSAGE( "--- Test failure when upgrading a non-existent account" );
@@ -2704,7 +2704,7 @@ BOOST_AUTO_TEST_CASE( escrow_transfer_apply )
       tx.operations.push_back( op );
       tx.sign( alice_private_key, db.get_chain_id() );
 
-      auto alice_steem_balance = alice.balance - op.steem_amount - op.fee;
+      auto alice_steem_balance = alice.balance - op.steem_amount - op.fee - asset(SMOKE_FLAT_FEE, SMOKE_SYMBOL);
       auto bob_steem_balance = bob.balance;
       auto sam_steem_balance = sam.balance;
 
@@ -2926,7 +2926,7 @@ BOOST_AUTO_TEST_CASE( escrow_approve_apply )
       db.push_transaction( tx, 0 );
 
       SMOKE_REQUIRE_THROW( db.get_escrow( op.from, op.escrow_id ), fc::exception );
-      BOOST_REQUIRE( alice.balance == ASSET( "10.000 TESTS" ) );
+      BOOST_REQUIRE( alice.balance - asset(NEW_ACCOUNT_BALANCE - SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "10.000 TESTS" ) );
       validate_database();
 
 
@@ -2940,7 +2940,7 @@ BOOST_AUTO_TEST_CASE( escrow_approve_apply )
       generate_blocks( et_op.ratification_deadline + SMOKE_BLOCK_INTERVAL, true );
 
       SMOKE_REQUIRE_THROW( db.get_escrow( op.from, op.escrow_id ), fc::exception );
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "10.000 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 2*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "10.000 TESTS" ) );
       validate_database();
 
 
@@ -2965,7 +2965,7 @@ BOOST_AUTO_TEST_CASE( escrow_approve_apply )
       generate_blocks( et_op.ratification_deadline + SMOKE_BLOCK_INTERVAL, true );
 
       SMOKE_REQUIRE_THROW( db.get_escrow( op.from, op.escrow_id ), fc::exception );
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "10.000 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 3*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "10.000 TESTS" ) );
       validate_database();
 
 
@@ -2989,7 +2989,7 @@ BOOST_AUTO_TEST_CASE( escrow_approve_apply )
       generate_blocks( et_op.ratification_deadline + SMOKE_BLOCK_INTERVAL, true );
 
       SMOKE_REQUIRE_THROW( db.get_escrow( op.from, op.escrow_id ), fc::exception );
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "10.000 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 4*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "10.000 TESTS" ) );
       validate_database();
 
 
@@ -3030,7 +3030,7 @@ BOOST_AUTO_TEST_CASE( escrow_approve_apply )
          BOOST_REQUIRE( !escrow.disputed );
       }
 
-      BOOST_REQUIRE( db.get_account( "sam" ).balance == et_op.fee );
+      BOOST_REQUIRE( db.get_account( "sam" ).balance - asset(NEW_ACCOUNT_BALANCE - 3*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == et_op.fee );
       validate_database();
 
 
@@ -3050,7 +3050,7 @@ BOOST_AUTO_TEST_CASE( escrow_approve_apply )
          BOOST_REQUIRE( !escrow.disputed );
       }
 
-      BOOST_REQUIRE( db.get_account( "sam" ).balance == et_op.fee );
+      BOOST_REQUIRE( db.get_account( "sam" ).balance - asset(NEW_ACCOUNT_BALANCE - 3*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == et_op.fee );
       validate_database();
    }
    FC_LOG_AND_RETHROW()
@@ -3535,7 +3535,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       db.push_transaction( tx, 0 );
 
       BOOST_REQUIRE( db.get_escrow( op.from, op.escrow_id ).steem_balance == ASSET( "0.900 TESTS" ) );
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "9.000 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "9.000 TESTS" ) );
 
 
       BOOST_TEST_MESSAGE( "--- failure when 'from' attempts to release non-disputed escrow to 'from'" );
@@ -3575,7 +3575,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       db.push_transaction( tx, 0 );
 
       BOOST_REQUIRE( db.get_escrow( op.from, op.escrow_id ).steem_balance == ASSET( "0.800 TESTS" ) );
-      BOOST_REQUIRE( db.get_account( "bob" ).balance == ASSET( "0.100 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "bob" ).balance - asset(NEW_ACCOUNT_BALANCE - 3*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "0.100 TESTS" ) );
 
 
       BOOST_TEST_MESSAGE( "--- failure when releasing more steem than available" );
@@ -3653,7 +3653,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( sam_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "bob" ).balance == ASSET( "0.200 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "bob" ).balance - asset(NEW_ACCOUNT_BALANCE - 3*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "0.200 TESTS" ) );
       BOOST_REQUIRE( db.get_escrow( et_op.from, et_op.escrow_id ).steem_balance == ASSET( "0.700 TESTS" ) );
 
 
@@ -3665,7 +3665,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( sam_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "9.100 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 3*SMOKE_FLAT_FEE, SMOKE_SYMBOL)  == ASSET( "9.100 TESTS" ) );
       BOOST_REQUIRE( db.get_escrow( et_op.from, et_op.escrow_id ).steem_balance == ASSET( "0.600 TESTS" ) );
 
 
@@ -3698,7 +3698,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( sam_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "9.200 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 3*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "9.200 TESTS" ) );
       BOOST_REQUIRE( db.get_escrow( et_op.from, et_op.escrow_id ).steem_balance == ASSET( "0.500 TESTS" ) );
 
 
@@ -3709,7 +3709,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( sam_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "9.700 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 3*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "9.700 TESTS" ) );
       SMOKE_REQUIRE_THROW( db.get_escrow( et_op.from, et_op.escrow_id ), fc::exception );
 
 
@@ -3777,7 +3777,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( bob_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "bob" ).balance == ASSET( "0.300 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "bob" ).balance - asset(NEW_ACCOUNT_BALANCE - 7*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "0.300 TESTS" ) );
       BOOST_REQUIRE( db.get_escrow( et_op.from, et_op.escrow_id ).steem_balance == ASSET( "0.900 TESTS" ) );
 
 
@@ -3788,7 +3788,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( bob_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "8.700 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 6*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "8.700 TESTS" ) );
       BOOST_REQUIRE( db.get_escrow( et_op.from, et_op.escrow_id ).steem_balance == ASSET( "0.800 TESTS" ) );
 
 
@@ -3816,7 +3816,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( alice_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "bob" ).balance == ASSET( "0.400 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "bob" ).balance - asset(NEW_ACCOUNT_BALANCE - 8*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "0.400 TESTS" ) );
       BOOST_REQUIRE( db.get_escrow( et_op.from, et_op.escrow_id ).steem_balance == ASSET( "0.700 TESTS" ) );
 
 
@@ -3827,7 +3827,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( alice_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "8.800 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 8*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "8.800 TESTS" ) );
       BOOST_REQUIRE( db.get_escrow( et_op.from, et_op.escrow_id ).steem_balance == ASSET( "0.600 TESTS" ) );
 
 
@@ -3838,7 +3838,7 @@ BOOST_AUTO_TEST_CASE( escrow_release_apply )
       tx.sign( alice_private_key, db.get_chain_id() );
       db.push_transaction( tx, 0 );
 
-      BOOST_REQUIRE( db.get_account( "alice" ).balance == ASSET( "9.400 TESTS" ) );
+      BOOST_REQUIRE( db.get_account( "alice" ).balance - asset(NEW_ACCOUNT_BALANCE - 9*SMOKE_FLAT_FEE, SMOKE_SYMBOL) == ASSET( "9.400 TESTS" ) );
       SMOKE_REQUIRE_THROW( db.get_escrow( et_op.from, et_op.escrow_id ), fc::exception );
    }
    FC_LOG_AND_RETHROW()

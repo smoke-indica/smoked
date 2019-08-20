@@ -12,6 +12,9 @@
 #include <iostream>
 
 #define INITIAL_TEST_SUPPLY (10000000000ll)
+
+#define NEW_ACCOUNT_BALANCE (10 * SMOKE_FLAT_FEE) // for paying flat fee
+
 using namespace graphene::db;
 
 extern uint32_t ( SMOKE_TESTING_GENESIS_TIMESTAMP );
@@ -115,7 +118,8 @@ extern uint32_t ( SMOKE_TESTING_GENESIS_TIMESTAMP );
 #define ACTOR(name) \
    PREP_ACTOR(name) \
    const auto& name = account_create(BOOST_PP_STRINGIZE(name), name ## _public_key, name ## _post_key.get_public_key()); \
-   account_id_type name ## _id = name.id; (void)name ## _id;
+   account_id_type name ## _id = name.id; (void)name ## _id; \
+   fund (BOOST_PP_STRINGIZE(name), NEW_ACCOUNT_BALANCE);
 
 #define GET_ACTOR(name) \
    fc::ecc::private_key name ## _private_key = generate_private_key(BOOST_PP_STRINGIZE(name)); \
