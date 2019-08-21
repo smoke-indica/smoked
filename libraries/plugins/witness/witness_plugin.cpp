@@ -231,7 +231,17 @@ namespace detail
 
    void witness_plugin_impl::pre_transaction( const signed_transaction& trx )
    {
+#ifdef IS_TEST_NET
+      bool testnet = true;
+#else
+      bool testnet = false;
+#endif
+      bool has_hf1 = false;
+
       auto& _db = _self.database();
+
+      if (testnet || _db.has_hardfork(SMOKE_HARDFORK_0_1)) has_hf1 = true;
+
       flat_set< account_name_type > required; vector<authority> other;
       trx.get_required_authorities( required, required, required, other );
 
@@ -241,7 +251,7 @@ namespace detail
       {
          const auto& acnt = _db.get_account( auth );
 
-         { // flat fee with fixed 0.010 SMOKE
+         if (has_hf1) { // flat fee with fixed 0.010 SMOKE
             auto fee = asset( int64_t(SMOKE_FLAT_FEE) * trx.operations.size(), SMOKE_SYMBOL );
 //            FC_ASSERT( acnt.balance >= fee, "Account does not have sufficient funds for transaction fee.", ("balance", acnt.balance)("fee", fee) );
             _db.pay_fee(acnt, fee);

@@ -1,0 +1,7 @@
+#ifndef SMOKE_HARDFORK_0_1
+#define SMOKE_HARDFORK_0_1 1
+
+#define SMOKE_HARDFORK_0_1_TIME (1515765200)  /// genesis for testing
+#define SMOKE_HARDFORK_0_1_VERSION hardfork_version(0, 1)
+
+#endif
