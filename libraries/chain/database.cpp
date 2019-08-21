@@ -2655,6 +2655,12 @@ void database::init_hardforks()
    _hardfork_times[ 0 ] = fc::time_point_sec( SMOKE_GENESIS_TIME );
    _hardfork_versions[ 0 ] = hardfork_version( 0, 0 );
 
+   {
+      FC_ASSERT(SMOKE_HARDFORK_0_1 == 1, "Invalid hardfork configuration");
+      _hardfork_times[SMOKE_HARDFORK_0_1] = fc::time_point_sec(SMOKE_HARDFORK_0_1_TIME);
+      _hardfork_versions[SMOKE_HARDFORK_0_1] = SMOKE_HARDFORK_0_1_VERSION;
+   }
+
    const auto& hardforks = get_hardfork_property_object();
    FC_ASSERT( hardforks.last_hardfork <= SMOKE_NUM_HARDFORKS, "Chain knows of more hardforks than configuration", ("hardforks.last_hardfork",hardforks.last_hardfork)("SMOKE_NUM_HARDFORKS",SMOKE_NUM_HARDFORKS) );
    FC_ASSERT( _hardfork_versions[ hardforks.last_hardfork ] <= SMOKE_BLOCKCHAIN_VERSION, "Blockchain version is older than last applied hardfork" );
@@ -2710,6 +2716,8 @@ void database::apply_hardfork( uint32_t hardfork )
 
    switch( hardfork )
    {
+      case SMOKE_HARDFORK_0_1:
+         break;
       default:
          break;
    }
